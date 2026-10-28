@@ -15,7 +15,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 | **Phase 3** | Redirection Engine, Caching & Route Guards | ✅ Done | [#4](https://github.com/1st3/url-shortnener/issues/4) |
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ✅ Done | [#5](https://github.com/1st3/url-shortnener/issues/5) |
 | **Phase 5** | Admin REST API & Authentication Middleware | ✅ Done | [#6](https://github.com/1st3/url-shortnener/issues/6) |
-| **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ⏳ Pending | [#7](https://github.com/1st3/url-shortnener/issues/7) |
+| **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ✅ Done | [#7](https://github.com/1st3/url-shortnener/issues/7) |
 | **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | [#8](https://github.com/1st3/url-shortnener/issues/8) |
 
 ---
@@ -64,13 +64,13 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 - [x] Implement `GET /api/stats` and `GET /health` liveness probe.
 
 ### Phase 6: Modern Admin Dashboard UI & QR Code Generator
-- [ ] Create lightweight, dark-mode single-page UI at `/admin` (`src/public/index.html`, `app.js`, `styles.css`).
-- [ ] Build "Quick Shorten" input bar with custom slug option and instant creation.
-- [ ] Build links table with real-time debounce search across slugs, targets, and descriptions.
-- [ ] Add 1-click clipboard copy button for short URLs (`brzl.ca/<slug>`).
-- [ ] Add link activation/deactivation toggle switch.
-- [ ] Integrate lightweight SVG QR Code generator modal with download/copy functionality.
-- [ ] Display aggregate analytics summary cards (total clicks, active links, 24h click volume).
+- [x] Create lightweight, dark-mode single-page UI at `/admin` (`src/public/index.html`, `app.js`, `styles.css`).
+- [x] Build "Quick Shorten" input bar with custom slug option and instant creation.
+- [x] Build links table with real-time debounce search across slugs, targets, and descriptions.
+- [x] Add 1-click clipboard copy button for short URLs (`brzl.ca/<slug>`).
+- [x] Add link activation/deactivation toggle switch.
+- [x] Integrate lightweight SVG QR Code generator modal with download/copy functionality.
+- [x] Display aggregate analytics summary cards (total clicks, active links, 24h click volume).
 
 ### Phase 7: Deployment, Docker Compose, Backups & Cloudflare Ingress
 - [ ] Author multi-stage `Dockerfile` (Node 20 Alpine, non-root user, memory-optimized flags).

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | brzl.ca URL Shortener</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔗</text></svg>">
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <header class="border-b border-gray-800 bg-gray-900/60 backdrop-blur sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🔗</span>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+            brzl.ca <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Shortener</span>
+          </h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="auth-btn" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md border border-gray-700 transition flex items-center gap-1.5">
+          <span id="auth-indicator" class="w-2 h-2 rounded-full bg-yellow-500"></span>
+          <span id="auth-text">Set Admin Key</span>
+        </button>
+        <a href="/" target="_blank" class="text-xs text-gray-400 hover:text-white transition">Visit Site &rarr;</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <!-- Stats Cards -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="stat-card">
+        <span class="stat-label">Total Links</span>
+        <span id="stat-total-links" class="stat-value">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Active Links</span>
+        <span id="stat-active-links" class="stat-value text-emerald-400">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Clicks</span>
+        <span id="stat-total-clicks" class="stat-value text-blue-400">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Clicks (Last 24h)</span>
+        <span id="stat-clicks-24h" class="stat-value text-purple-400">--</span>
+      </div>
+    </section>
+
+    <!-- Create Link Card -->
+    <section class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-xl">
+      <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+        <span>⚡</span> Create New Short Link
+      </h2>
+      <form id="create-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div class="md:col-span-6">
+            <label for="input-url" class="block text-xs font-medium text-gray-400 mb-1">Destination URL <span class="text-red-400">*</span></label>
+            <input type="url" id="input-url" required placeholder="https://example.com/long-page-url" class="input-field" autocomplete="off" />
+          </div>
+          <div class="md:col-span-3">
+            <label for="input-slug" class="block text-xs font-medium text-gray-400 mb-1">Custom Slug (optional)</label>
+            <div class="relative flex items-center">
+              <span class="absolute left-3 text-xs text-gray-500 select-none">/</span>
+              <input type="text" id="input-slug" placeholder="custom-slug" pattern="^[a-zA-Z0-9_-]{2,64}$" class="input-field pl-7" autocomplete="off" />
+            </div>
+          </div>
+          <div class="md:col-span-3">
+            <label for="input-desc" class="block text-xs font-medium text-gray-400 mb-1">Description (optional)</label>
+            <input type="text" id="input-desc" placeholder="e.g. Twitter promo" class="input-field" autocomplete="off" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <p id="form-feedback" class="text-xs text-red-400 hidden"></p>
+          <button type="submit" id="submit-btn" class="btn-primary ml-auto flex items-center gap-2">
+            <span>Shorten Link</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Links Table Card -->
+    <section class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-xl">
+      <div class="p-4 border-b border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+          <span>📋</span> All Short Links
+        </h2>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <input type="text" id="search-input" placeholder="Search slug, URL, or notes..." class="input-field py-1.5 text-xs w-full sm:w-64" />
+          <select id="status-filter" class="input-field py-1.5 text-xs w-28">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-gray-800 bg-gray-950/40 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <th class="py-3 px-4">Short URL</th>
+              <th class="py-3 px-4">Destination</th>
+              <th class="py-3 px-4 text-center">Clicks</th>
+              <th class="py-3 px-4 text-center">Status</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="links-tbody" class="divide-y divide-gray-800/60 text-sm">
+            <tr>
+              <td colspan="5" class="py-8 text-center text-gray-500">Loading short links...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div id="pagination-bar" class="p-4 border-t border-gray-800 flex items-center justify-between text-xs text-gray-400">
+        <span id="page-info">Showing links</span>
+        <div class="flex items-center gap-2">
+          <button id="prev-page-btn" class="btn-secondary py-1 px-3 disabled:opacity-40" disabled>&larr; Previous</button>
+          <button id="next-page-btn" class="btn-secondary py-1 px-3 disabled:opacity-40" disabled>Next &rarr;</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Auth Key Modal -->
+  <dialog id="auth-modal" class="modal">
+    <div class="modal-card">
+      <h3 class="text-base font-bold text-white mb-2">Configure Admin API Key</h3>
+      <p class="text-xs text-gray-400 mb-4">Enter your configured <code>ADMIN_API_KEY</code>. It will be stored securely in your browser's local storage.</p>
+      <input type="password" id="modal-api-key-input" placeholder="Enter ADMIN_API_KEY" class="input-field mb-4 text-sm" />
+      <div class="flex justify-end gap-2">
+        <button id="auth-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="auth-save-btn" class="btn-primary">Save Key</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- QR Code Modal -->
+  <dialog id="qr-modal" class="modal">
+    <div class="modal-card text-center">
+      <h3 id="qr-modal-title" class="text-base font-bold text-white mb-1">QR Code</h3>
+      <p id="qr-modal-url" class="text-xs text-blue-400 mb-4 select-all"></p>
+      <div id="qr-code-container" class="bg-white p-4 rounded-xl inline-block mx-auto mb-4"></div>
+      <div class="flex justify-center gap-2">
+        <button id="qr-close-btn" class="btn-secondary">Close</button>
+        <button id="qr-download-btn" class="btn-primary">Download SVG</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>

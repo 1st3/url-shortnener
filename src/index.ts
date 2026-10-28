@@ -1,4 +1,8 @@
 import Fastify from 'fastify';
+import fastifyStatic from '@fastify/static';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { runMigrations } from './db/migrate.js';
 import { checkDatabaseIntegrity, closeDatabase, getDatabase } from './db/index.js';
@@ -8,6 +12,9 @@ import { apiRoutes } from './routes/api.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { analyticsQueue } from './services/analyticsQueue.js';
 import { startPruningScheduler } from './services/pruning.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = Fastify({
   logger: {
@@ -54,6 +61,21 @@ async function start() {
 
     // Start background analytics pruning scheduler
     startPruningScheduler();
+
+    // Register Static UI assets for /admin
+    let publicDir = path.join(__dirname, 'public');
+    if (!fs.existsSync(publicDir)) {
+      publicDir = path.resolve(process.cwd(), 'src/public');
+    }
+
+    await app.register(fastifyStatic, {
+      root: publicDir,
+      prefix: '/admin/',
+    });
+
+    app.get('/admin', async (req, reply) => {
+      return reply.redirect('/admin/', 302);
+    });
 
     // Register API routes
     await app.register(apiRoutes);
