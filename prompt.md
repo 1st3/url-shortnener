@@ -7,7 +7,7 @@
 ```markdown
 # TASK: Build and Deploy the `brzl.ca` URL Shortener Web App
 
-You are tasked with building a high-performance, resource-efficient, production-grade URL shortener web application for custom domain **`brzl.ca`**, self-hosted on a home server (**`rv415`**) and routed securely through **Cloudflare Tunnel**. Treat this as a clean start: do not preserve, import, or test any existing redirects or routes from this repository.
+You are tasked with building a high-performance, resource-efficient, production-grade URL shortener web application for custom domain **`brzl.ca`**, self-hosted on a home server (**`rv415`**) and routed securely through **Cloudflare Tunnel**.
 
 ---
 
@@ -45,7 +45,7 @@ Choose a stack that is lightning-fast, zero-hassle to deploy, and consumes minim
 - Reserved routes: Ensure system paths are reserved and cannot be used as slugs:
   - `/admin`, `/api/*`, `/health`, `/favicon.ico`, `/robots.txt`, `/static/*`.
 - 404 / Fallback Handling:
-  - Return a branded, minimal 404 page for unknown or disabled slugs. Support an optional operator-configured fallback URL only if explicitly enabled; do not assume a destination from past configuration.
+  - Return a branded, minimal 404 page for unknown or disabled slugs. Support an optional operator-configured fallback URL only if explicitly enabled.
 - Non-blocking Click Analytics:
   - On each redirect, asynchronously record:
     - Timestamp
@@ -53,7 +53,7 @@ Choose a stack that is lightning-fast, zero-hassle to deploy, and consumes minim
     - Referrer (from `Referer` header)
     - IP Country (read from Cloudflare header `CF-IPCountry`)
     - User Agent (parsed or truncated device/browser info)
-  - Update `total_clicks` and `last_accessed_at` on the link record.
+  - Update `click_count` and `last_accessed_at` on the link record.
 
 ### 3.2. Link Management API (`/api/links`)
 Protected by `Authorization: Bearer <ADMIN_API_KEY>` or authenticated session:
@@ -193,7 +193,7 @@ Provide the exact curl command to patch the Cloudflare Tunnel ingress configurat
 Please implement this project completely following these steps:
 
 1. **Setup project configuration:** Initialize `package.json`, TypeScript, and build scripts.
-2. **Implement Database Layer:** Setup SQLite with WAL mode and automatic schema creation. Initialize with no links; do not import or preserve routes from repository files.
+2. **Implement Database Layer:** Setup SQLite with WAL mode and automatic schema creation. Start with an empty links table; links are added through the dashboard or API.
 3. **Build Core Server & Redirection Engine:**
    - Ultra-fast `/:slug` handler with non-blocking click tracking.
    - Reserved route guards and 404/fallback redirection.
