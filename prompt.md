@@ -106,11 +106,49 @@ To stay within the memory and CPU constraints of the AMD E-300:
 - **Retention & Data Pruning:**
   - Individual `click_events` are retained for **90 days** (`ANALYTICS_RETENTION_DAYS=90`).
   - The aggregate `click_count` and `last_accessed_at` on the `links` table remain permanently.
-  - Implement a daily cleanup query:
+  - Storage expectation: ~120 bytes per click. At 10,000 clicks/month, 90 days occupies < 4 MB of disk space. Total database size will comfortably remain < 20 MB.
+
+### 3.4. Analytics Ingestion & Persistence Policy (Queueing, Concurrency & Failure Recovery)
+
+Because `better-sqlite3` executes synchronously and `rv415` runs on a spinning 2.5" SATA HDD, writing analytics synchronously before redirecting would add 10–50ms disk I/O latency to every visitor request. To eliminate redirect delay while protecting server memory and data integrity, the following policy is strictly required:
+
+- **Decoupled Redirect & Enqueue:**
+  1. The route handler performs a fast, memory-cached SQLite read:
+     `SELECT id, destination_url FROM links WHERE slug = ? AND is_active = 1`
+  2. The handler **immediately** responds with `307 Temporary Redirect` to the visitor.
+  3. The handler pushes the click payload into an in-memory queue (`analyticsQueue.push({...})`). The visitor connection completes without waiting on disk writes.
+- **Batched Persistence:**
+  - The in-memory queue buffers events and flushes them to SQLite in bulk:
+    - **Trigger:** Flush whenever the queue accumulates **50 events**, OR every **1,000 ms** via a timer, whichever occurs first.
+    - **Atomic Transaction:** Flushed events are committed in a single SQLite transaction:
+      ```sql
+      BEGIN TRANSACTION;
+      -- Insert all queued click_events in batch
+      INSERT INTO click_events (link_id, clicked_at, country, referrer, user_agent) VALUES (...);
+      -- Batch-update links click_count and last_accessed_at
+      UPDATE links SET click_count = click_count + ?, last_accessed_at = ? WHERE id = ?;
+      COMMIT;
+      ```
+    - *Impact:* Batching 50 events in a single transaction reduces HDD write cycles by 98%.
+- **Crash & Data Loss Tolerance (Accepted Policy):**
+  - **Explicit Trade-Off:** Visitor redirect latency and disk health are prioritized over zero-data-loss durability for analytics. In an ungraceful crash (e.g., `kill -9`, sudden power loss to `rv415`), at most **1 second of click data (max 50 events)** may be lost. This is an explicit, accepted system trade-off.
+  - **Graceful Shutdown (`SIGTERM` / `SIGINT`):** On process shutdown, the server stops accepting new HTTP connections, immediately flushes all pending events in the queue to SQLite within a 5-second deadline, runs `PRAGMA wal_checkpoint(TRUNCATE)`, closes the DB handle, and exits cleanly. Zero events are lost during normal deployments or container restarts.
+- **Queue Overflow & Backpressure Policy:**
+  - The in-memory queue has a hard upper bound of **5,000 events** (occupies < 1 MB RAM, preventing memory leaks on `rv415`).
+  - If the queue fills (e.g., during a traffic surge, crawler flood, or transient disk I/O freeze):
+    - **Drop Strategy:** Drop excess incoming analytics events (`drop-oldest`) and increment an internal dropped event counter.
+    - **Availability Invariant:** Never block, throttle, or fail the redirect response. The redirect always succeeds regardless of queue state.
+    - Log a rate-limited warning: `[WARN] Analytics queue full (>5000 items). Dropping click events to preserve redirect responsiveness.`
+- **Write Failure Handling:**
+  - If a batch write fails (e.g., temporary `SQLITE_BUSY` lock):
+    - Retry the batch once after a 500 ms backoff.
+    - If the retry fails, log an error (`[ERROR] Analytics batch write failed: <err>`), discard the failing batch to prevent unbounded queue growth, and continue servicing requests. Never allow database write errors to crash the process.
+- **Automated Retention & Pruning Scheduler:**
+  - An internal scheduler runs daily (e.g., at 03:00 UTC) executing:
     ```sql
     DELETE FROM click_events WHERE clicked_at < datetime('now', '-90 days');
     ```
-  - Storage expectation: ~120 bytes per click. At 10,000 clicks/month, 90 days occupies < 4 MB of disk space. Total database size will comfortably remain < 20 MB.
+  - Followed by `PRAGMA incremental_vacuum;` or SQLite page optimization to reclaim space on disk.
 
 ---
 
@@ -239,6 +277,9 @@ CREATE INDEX IF NOT EXISTS idx_clicks_timestamp ON click_events(clicked_at);
 │   │   ├── redirect.ts          # /:slug handler, no-cache headers, 404/410 handlers
 │   │   ├── api.ts               # REST API endpoints (/api/links, /api/stats)
 │   │   └── health.ts            # /health check
+│   ├── services/
+│   │   ├── analyticsQueue.ts    # In-memory batch queue, flush timer & shutdown drain
+│   │   └── pruning.ts           # Daily 90-day retention cleanup & vacuum scheduler
 │   ├── middleware/
 │   │   ├── auth.ts              # Bearer key & Cloudflare Access header auth
 │   │   └── errorHandler.ts      # RFC 7807 error formatter
@@ -320,10 +361,13 @@ Execute the transformation step-by-step:
    - Implement `better-sqlite3` with WAL mode pragmas.
    - Create migration runner (`_migrations` table) and schema files.
    - Create seed importer from `_redirects` (`scripts/seed-redirects.ts`).
-3. **Core Redirection Engine:**
-   - Implement `GET /:slug` with `307 Temporary Redirect` and strict `Cache-Control: private, no-cache, no-store`.
+3. **Core Redirection Engine & Analytics Queue:**
+   - Implement `GET /:slug` with instant `307 Temporary Redirect` and strict `Cache-Control: private, no-cache, no-store`.
    - Implement `404 Not Found` for unknown slugs and `410 Gone` for disabled slugs.
-   - Non-blocking click tracking with privacy masking (CF country, stripped referrer, sanitized UA).
+   - Decouple redirection from DB writes: enqueue events into an in-memory batch queue (`analyticsQueue.ts`).
+   - Implement batched transaction flushing (every 50 events or 1,000 ms).
+   - Implement queue capacity bounding (max 5,000 items, drop-oldest backpressure without failing redirects).
+   - Implement graceful shutdown handler to flush remaining events on `SIGTERM`/`SIGINT`.
 4. **Admin REST API:**
    - Full CRUD on `/api/links` with validation (URL scheme, slug regex, 409 collision check).
    - `/api/stats` endpoint.
