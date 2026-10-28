@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  brzl-shortener:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: brzl-shortener:latest
+    container_name: brzl-shortener
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - HOST=0.0.0.0
+      - BASE_URL=https://brzl.ca
+      - DEFAULT_FALLBACK_URL=https://brasileiro.ca
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-brzl-prod-admin-secret-key-99}
+      - DB_PATH=/app/data/shortener.db
+      - ANALYTICS_RETENTION_DAYS=90
+      - NODE_OPTIONS=--max-old-space-size=64
+    volumes:
+      - ./data:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

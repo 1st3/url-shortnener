@@ -16,7 +16,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ✅ Done | [#5](https://github.com/1st3/url-shortnener/issues/5) |
 | **Phase 5** | Admin REST API & Authentication Middleware | ✅ Done | [#6](https://github.com/1st3/url-shortnener/issues/6) |
 | **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ✅ Done | [#7](https://github.com/1st3/url-shortnener/issues/7) |
-| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | [#8](https://github.com/1st3/url-shortnener/issues/8) |
+| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ In Progress | [#8](https://github.com/1st3/url-shortnener/issues/8) |
 
 ---
 
