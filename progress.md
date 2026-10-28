@@ -10,13 +10,13 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 
 | Phase | Milestone | Status | GitHub Issue |
 |---|---|---|---|
-| **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ⏳ Pending | Issue #1 |
-| **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ⏳ Pending | Issue #2 |
-| **Phase 3** | Redirection Engine, Caching & Route Guards | ⏳ Pending | Issue #3 |
-| **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ⏳ Pending | Issue #4 |
-| **Phase 5** | Admin REST API & Authentication Middleware | ⏳ Pending | Issue #5 |
-| **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ⏳ Pending | Issue #6 |
-| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | Issue #7 |
+| **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ⏳ Pending | [#2](https://github.com/1st3/url-shortnener/issues/2) |
+| **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ⏳ Pending | [#3](https://github.com/1st3/url-shortnener/issues/3) |
+| **Phase 3** | Redirection Engine, Caching & Route Guards | ⏳ Pending | [#4](https://github.com/1st3/url-shortnener/issues/4) |
+| **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ⏳ Pending | [#5](https://github.com/1st3/url-shortnener/issues/5) |
+| **Phase 5** | Admin REST API & Authentication Middleware | ⏳ Pending | [#6](https://github.com/1st3/url-shortnener/issues/6) |
+| **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ⏳ Pending | [#7](https://github.com/1st3/url-shortnener/issues/7) |
+| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | [#8](https://github.com/1st3/url-shortnener/issues/8) |
 
 ---
 
