@@ -14,7 +14,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 | **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ✅ Done | [#3](https://github.com/1st3/url-shortnener/issues/3) |
 | **Phase 3** | Redirection Engine, Caching & Route Guards | ✅ Done | [#4](https://github.com/1st3/url-shortnener/issues/4) |
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ✅ Done | [#5](https://github.com/1st3/url-shortnener/issues/5) |
-| **Phase 5** | Admin REST API & Authentication Middleware | ⏳ Pending | [#6](https://github.com/1st3/url-shortnener/issues/6) |
+| **Phase 5** | Admin REST API & Authentication Middleware | ✅ Done | [#6](https://github.com/1st3/url-shortnener/issues/6) |
 | **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ⏳ Pending | [#7](https://github.com/1st3/url-shortnener/issues/7) |
 | **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | [#8](https://github.com/1st3/url-shortnener/issues/8) |
 
@@ -55,13 +55,13 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 - [x] Implement daily automated retention pruning (`src/services/pruning.ts`) deleting `click_events` > 90 days.
 
 ### Phase 5: Admin REST API & Authentication Middleware
-- [ ] Build authentication middleware (`src/middleware/auth.ts`) supporting `ADMIN_API_KEY` and `Cf-Access-Authenticated-User-Email`.
-- [ ] Implement RFC 7807 standardized JSON error handler (`src/middleware/errorHandler.ts`).
-- [ ] Implement `GET /api/links` with pagination, search filter, and click aggregates.
-- [ ] Implement `POST /api/links` with URL schema validation (`http/https`), lowercase slug normalization, and `409 Conflict` checks.
-- [ ] Implement auto-generated slug generator (nanoid base62) with 5-attempt collision retry.
-- [ ] Implement `GET /api/links/:id`, `PUT /api/links/:id`, and `DELETE /api/links/:id`.
-- [ ] Implement `GET /api/stats` and `GET /health` liveness probe.
+- [x] Build authentication middleware (`src/middleware/auth.ts`) supporting `ADMIN_API_KEY` and `Cf-Access-Authenticated-User-Email`.
+- [x] Implement RFC 7807 standardized JSON error handler (`src/middleware/errorHandler.ts`).
+- [x] Implement `GET /api/links` with pagination, search filter, and click aggregates.
+- [x] Implement `POST /api/links` with URL schema validation (`http/https`), lowercase slug normalization, and `409 Conflict` checks.
+- [x] Implement auto-generated slug generator (nanoid base62) with 5-attempt collision retry.
+- [x] Implement `GET /api/links/:id`, `PUT /api/links/:id`, and `DELETE /api/links/:id`.
+- [x] Implement `GET /api/stats` and `GET /health` liveness probe.
 
 ### Phase 6: Modern Admin Dashboard UI & QR Code Generator
 - [ ] Create lightweight, dark-mode single-page UI at `/admin` (`src/public/index.html`, `app.js`, `styles.css`).

@@ -4,6 +4,8 @@ import { runMigrations } from './db/migrate.js';
 import { checkDatabaseIntegrity, closeDatabase, getDatabase } from './db/index.js';
 import { seedFromRedirects } from './db/seed.js';
 import { redirectRoutes } from './routes/redirect.js';
+import { apiRoutes } from './routes/api.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import { analyticsQueue } from './services/analyticsQueue.js';
 import { startPruningScheduler } from './services/pruning.js';
 
@@ -13,6 +15,8 @@ const app = Fastify({
   },
   trustProxy: true,
 });
+
+app.setErrorHandler(errorHandler);
 
 app.get('/health', async () => {
   const dbOk = checkDatabaseIntegrity();
@@ -51,7 +55,10 @@ async function start() {
     // Start background analytics pruning scheduler
     startPruningScheduler();
 
-    // Register routes
+    // Register API routes
+    await app.register(apiRoutes);
+
+    // Register redirection routes
     await app.register(redirectRoutes);
 
     await app.listen({ port: config.PORT, host: config.HOST });
