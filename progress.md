@@ -10,7 +10,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 
 | Phase | Milestone | Status | GitHub Issue |
 |---|---|---|---|
-| **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ⏳ Pending | [#2](https://github.com/1st3/url-shortnener/issues/2) |
+| **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ✅ Done | [#2](https://github.com/1st3/url-shortnener/issues/2) |
 | **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ⏳ Pending | [#3](https://github.com/1st3/url-shortnener/issues/3) |
 | **Phase 3** | Redirection Engine, Caching & Route Guards | ⏳ Pending | [#4](https://github.com/1st3/url-shortnener/issues/4) |
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ⏳ Pending | [#5](https://github.com/1st3/url-shortnener/issues/5) |
@@ -23,12 +23,12 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 ## Detailed Task Breakdown
 
 ### Phase 1: Project Setup, Fastify & TypeScript Foundation
-- [ ] Initialize `package.json` with Node.js 20+ LTS target and module configuration.
-- [ ] Setup TypeScript (`tsconfig.json`) with strict typing and ES2022 target.
-- [ ] Install Fastify core, static file plugin, and validation dependencies.
-- [ ] Configure environment schema (`src/config.ts`) with runtime validation (ports, URLs, secrets, paths).
-- [ ] Implement server entry point (`src/index.ts`) with graceful shutdown hooks (`SIGINT`, `SIGTERM`).
-- [ ] Verify baseline memory footprint (< 60MB idle RSS).
+- [x] Initialize `package.json` with Node.js 20+ LTS target and module configuration.
+- [x] Setup TypeScript (`tsconfig.json`) with strict typing and ES2022 target.
+- [x] Install Fastify core, static file plugin, and validation dependencies.
+- [x] Configure environment schema (`src/config.ts`) with runtime validation (ports, URLs, secrets, paths).
+- [x] Implement server entry point (`src/index.ts`) with graceful shutdown hooks (`SIGINT`, `SIGTERM`).
+- [x] Verify baseline memory footprint (< 60MB idle RSS).
 
 ### Phase 2: SQLite Database Layer, WAL Mode & Legacy Seeding
 - [ ] Configure `better-sqlite3` connection (`src/db/index.ts`) with WAL mode and `synchronous = NORMAL`.
