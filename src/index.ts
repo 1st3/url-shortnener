@@ -62,19 +62,37 @@ async function start() {
     // Start background analytics pruning scheduler
     startPruningScheduler();
 
-    // Register Static UI assets for /admin
+    // Register Static UI assets
     let publicDir = path.join(__dirname, 'public');
     if (!fs.existsSync(publicDir)) {
       publicDir = path.resolve(process.cwd(), 'src/public');
     }
 
+    // Serve static assets at /static/
+    await app.register(fastifyStatic, {
+      root: publicDir,
+      prefix: '/static/',
+      decorateReply: true,
+    });
+
+    // Also support /admin/ assets for compatibility
     await app.register(fastifyStatic, {
       root: publicDir,
       prefix: '/admin/',
+      decorateReply: false,
     });
 
+    // Serve web app directly at root /
+    app.get('/', async (req, reply) => {
+      return reply.sendFile('index.html');
+    });
+
+    // /admin also renders the web app
     app.get('/admin', async (req, reply) => {
-      return reply.redirect('/admin/', 302);
+      return reply.sendFile('index.html');
+    });
+    app.get('/admin/', async (req, reply) => {
+      return reply.sendFile('index.html');
     });
 
     // Register API routes

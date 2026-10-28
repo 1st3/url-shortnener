@@ -53,8 +53,8 @@ To stay within the memory and CPU constraints of the AMD E-300:
 ### 3.1. Routing & Status Code Behavior (Consequential Definitions)
 
 - **Root Path (`GET /`):**
-  - Returns `302 Found` redirecting to `https://brasileiro.ca` (or configured `DEFAULT_FALLBACK_URL`).
-  - Alternatively, if accessed with an admin session cookie or `/admin`, renders the admin dashboard.
+  - Serves the **URL Shortener Web App** directly (`200 OK` with HTML dashboard).
+  - `/admin` also renders the dashboard.
 - **Active Slug (`GET /:slug`):**
   - Returns `307 Temporary Redirect` to `links.destination_url`.
   - **Caching Headers:** MUST send explicit no-cache headers:

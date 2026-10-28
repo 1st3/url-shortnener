@@ -9,7 +9,7 @@ A high-performance, low-memory, production-grade URL shortener web application c
 - **Ultra-Fast Redirections:** `GET /:slug` redirects with `307 Temporary Redirect` in sub-millisecond response times.
 - **Strict HTTP Caching:** Sends explicit `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate` so destination edits and link deactivations take effect immediately.
 - **Clean HTTP Semantics:**
-  - `GET /`: `302 Found` redirects to `DEFAULT_FALLBACK_URL` (`https://brasileiro.ca`).
+  - `GET /`: Serves the URL shortener web app interface directly.
   - Unknown slug: Returns branded `404 Not Found` HTML page (no silent redirects).
   - Deactivated slug: Returns branded `410 Gone` HTML page.
 - **Decoupled Non-Blocking Analytics:**

@@ -18,11 +18,6 @@ const RESERVED_SLUGS = new Set([
 ]);
 
 export const redirectRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
-  // Root URL redirect
-  fastify.get('/', async (req, reply) => {
-    return reply.redirect(config.DEFAULT_FALLBACK_URL, 302);
-  });
-
   // Short link redirection: GET /:slug
   fastify.get<{ Params: { slug: string } }>('/:slug', async (req, reply) => {
     const rawSlug = req.params.slug;
