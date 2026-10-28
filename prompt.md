@@ -1,96 +1,135 @@
 # Prompt: Transform `url-shortnener` into a Production Web App for `brzl.ca`
 
-> **Usage:** Copy and provide the prompt below to your AI coding agent (or Antigravity / Claude / Cursor) within this repository to execute the complete transformation.
+> **Usage:** Copy and provide the prompt below to your AI coding agent (e.g. Antigravity, Claude, Cursor) within this repository to execute the complete transformation.
 
 ---
 
 ```markdown
 # TASK: Build and Deploy the `brzl.ca` URL Shortener Web App
 
-You are tasked with building a high-performance, resource-efficient, production-grade URL shortener web application for custom domain **`brzl.ca`**, self-hosted on a home server (**`rv415`**) and routed securely through **Cloudflare Tunnel**.
+You are tasked with transforming this repository from a static `_redirects` file into a high-performance, resource-efficient, production-grade URL shortener web application running on custom domain **`brzl.ca`**, self-hosted on home server **`rv415`** and routed securely through **Cloudflare Tunnel**.
+
+Follow all production requirements, data contracts, and architectural guidelines defined below.
 
 ---
 
 ## 1. Context & Server Environment
 
 - **Domain:** `brzl.ca`
-- **Hosting Target:** `rv415` (192.168.2.29 / Ubuntu 24.04 LTS / AMD E-300 2-core 1.3GHz APU / 6GB RAM).
-- **Resource Constraints:** AMD E-300 is a lightweight, low-power dual-core CPU with a spinning SATA HDD. The application **must be ultra-lightweight**, have minimal memory footprint (< 50MB RAM at runtime), fast cold-starts, and avoid heavy CPU workloads or bloated runtimes.
-- **Network Ingress:** Cloudflare Tunnel (`cloudflared` is already running on `rv415` in Docker host network mode, Tunnel ID: `8315d281-8528-4dcf-95f7-285c7256c74c`). The app will listen on a dedicated host port (e.g., `127.0.0.1:3005`) and Cloudflare will route `brzl.ca` to this port with Zero Trust / SSL termination.
-- **Initial State:** Start with an empty links database. Links will be created through the admin dashboard or API.
+- **Hosting Target:** `rv415` (192.168.2.29 / Ubuntu 24.04 LTS / AMD E-300 2-core 1.3GHz APU / 6GB DDR3 RAM / SATA HDD).
+- **Resource Budget & Memory Limits:**
+  - **Memory Goal:** ~45–60 MB idle RSS.
+  - **Docker Hard Limit:** 128 MB RAM (`mem_limit: 128m`, `mem_reservation: 64m`).
+  - **Runtime Tuning:** Use Node flag `--max-old-space-size=64` to enforce aggressive V8 garbage collection, or consider Go / Bun if Node overhead exceeds limits.
+  - **I/O Profile:** The host has a spinning SATA HDD. Disk writes must be minimized via SQLite WAL mode and synchronous=NORMAL. Avoid heavy build/compilation steps on the host during runtime.
+- **Network Ingress:** Cloudflare Tunnel (`cloudflared` already active on `rv415` in Docker host network mode, Tunnel ID: `8315d281-8528-4dcf-95f7-285c7256c74c`). The app binds to `127.0.0.1:3005` on `rv415`, and Cloudflare proxies traffic for `brzl.ca` to this local port.
+- **Role of Legacy `_redirects`:**
+  - `_redirects` serves strictly as a **one-time initial import/seed source**.
+  - At runtime, the SQLite database (`shortener.db`) is the **sole runtime Source of Truth (SSOT)**. The web app does *not* read or consult `_redirects` per-request.
+  - The `_redirects` file remains committed in the repository for historical auditing and backup.
 
 ---
 
-## 2. Technical Stack Recommendation
+## 2. Technical Stack & Dependencies
 
-Choose a stack that is lightning-fast, zero-hassle to deploy, and consumes minimal RAM:
+To stay within the memory and CPU constraints of the AMD E-300:
 
-- **Backend & Server:** Node.js (v20+ LTS) with **Fastify** or **Hono** (or Bun/Go if preferred; Fastify + TypeScript is recommended for maintainability and speed).
-- **Database:** **SQLite** via `better-sqlite3` (or `sql.js` / `bun:sqlite`) running with:
-  - `PRAGMA journal_mode = WAL;` (prevents database locking)
-  - `PRAGMA synchronous = NORMAL;` (dramatically reduces disk I/O on HDD)
-  - Single database file in a persistent Docker volume (`./data/shortener.db`).
-- **Frontend / Dashboard:** Single-page dashboard built with modern Tailwind CSS + Vanilla JS or a lightweight Vite/React build served as static assets from the same backend binary/container.
-- **Authentication:**
-  - Support Cloudflare Access header (`Cf-Access-Authenticated-User-Email`) for seamless SSO if configured.
-  - Fallback / local auth: Simple Admin Secret Key (`ADMIN_API_KEY` / Session Cookie or Bearer Token).
-- **Containerization:** Docker multi-stage build (Alpine or slim base) + `docker-compose.yml`.
-
----
-
-## 3. Core Functional Requirements
-
-### 3.1. High-Performance Redirect Engine
-- Route `GET /:slug` directly to the target URL using `307 Temporary Redirect` (or configurable `301 Permanent Redirect`).
-- Reserved routes: Ensure system paths are reserved and cannot be used as slugs:
-  - `/admin`, `/api/*`, `/health`, `/favicon.ico`, `/robots.txt`, `/static/*`.
-- 404 / Fallback Handling:
-  - Return a branded, minimal 404 page for unknown or disabled slugs. Support an optional operator-configured fallback URL only if explicitly enabled.
-- Non-blocking Click Analytics:
-  - On each redirect, asynchronously record:
-    - Timestamp
-    - Slug ID
-    - Referrer (from `Referer` header)
-    - IP Country (read from Cloudflare header `CF-IPCountry`)
-    - User Agent (parsed or truncated device/browser info)
-  - Update `click_count` and `last_accessed_at` on the link record.
-
-### 3.2. Link Management API (`/api/links`)
-Protected by `Authorization: Bearer <ADMIN_API_KEY>` or authenticated session:
-- `GET /api/links`: List all links with pagination, search, and click counts.
-- `POST /api/links`: Create a new short link:
-  - Fields: `url` (required), `slug` (optional, auto-generate 5-character nanoid/alphanumeric if omitted), `description` (optional), `is_active` (boolean, default true).
-- `GET /api/links/:id`: Retrieve link details and recent click history.
-- `PUT /api/links/:id`: Update destination `url`, `slug`, `description`, or toggle `is_active`.
-- `DELETE /api/links/:id`: Delete a short link (soft or hard delete).
-- `GET /api/stats`: Quick dashboard summary (total links, total clicks, top 5 popular links, clicks last 24h/7d).
-- `GET /health`: Unauthenticated health probe (`{"status": "ok", "uptime": ...}`).
-
-### 3.3. Admin Web Dashboard (`/admin`)
-- Accessible via `/admin` (desktop and mobile responsive).
-- Clean, minimalist aesthetic (dark mode default with high contrast, crisp typography).
-- Features:
-  - **Quick Add Bar:** Destination URL input + optional custom slug + "Shorten" button.
-  - **Links Table / Card List:**
-    - Short URL with 1-click "Copy" button (`brzl.ca/<slug>`).
-    - Target URL preview with truncation.
-    - Click count badge.
-    - Status toggle (Active / Disabled).
-    - QR Code modal (instantly render QR code SVG for offline or mobile sharing).
-    - Edit and Delete actions.
-  - **Search & Filter:** Instant filter by slug, destination URL, or description.
-  - **Quick Analytics:** Clicks count, creation date, last clicked date.
+- **Backend:** Node.js (v20+ LTS) using **Fastify** (or Hono). Fastify provides near-zero overhead, built-in schema validation via Ajv, and very low memory consumption.
+- **Database:** **SQLite** via `better-sqlite3`:
+  - `PRAGMA journal_mode = WAL;` (concurrent reads during writes, prevents locks)
+  - `PRAGMA synchronous = NORMAL;` (dramatically lowers disk I/O on HDD)
+  - `PRAGMA temp_store = MEMORY;`
+  - `PRAGMA cache_size = -16000;` (~16MB memory page cache)
+  - `PRAGMA foreign_keys = ON;`
+- **Frontend / Dashboard:** A single-page dashboard served directly as static files from the backend container:
+  - HTML5, modern vanilla TypeScript/JavaScript, and Tailwind CSS (pre-built at Docker build time).
+  - No heavyweight full-stack SSR runtime (e.g., avoid Next.js server runtime, which consumes 150MB+ RSS).
+- **Containerization:** Multi-stage `Dockerfile` (Node Alpine/slim build stage -> production runner) with non-root user.
 
 ---
 
-## 4. Architecture & Database Schema
+## 3. Core Functional & Routing Specifications
 
-### Database Tables (SQLite)
+### 3.1. Routing & Status Code Behavior (Consequential Definitions)
+
+- **Root Path (`GET /`):**
+  - Returns `302 Found` redirecting to `https://brasileiro.ca` (or configured `DEFAULT_FALLBACK_URL`).
+  - Alternatively, if accessed with an admin session cookie or `/admin`, renders the admin dashboard.
+- **Active Slug (`GET /:slug`):**
+  - Returns `307 Temporary Redirect` to `links.destination_url`.
+  - **Caching Headers:** MUST send explicit no-cache headers:
+    ```http
+    Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate
+    Pragma: no-cache
+    ```
+    *Rationale:* Prevents browser and Cloudflare edge caches from freezing the target URL, allowing instant target edits, deactivation, and guaranteed click counting. (Do not use `301 Permanent Redirect` by default).
+- **Unknown Slug (`GET /:slug` where slug does not exist):**
+  - Returns **`404 Not Found`** with a branded, minimal HTML page ("Link not found" with link to home).
+  - *Rationale:* Do **not** silently redirect unknown slugs to the fallback domain. Silent redirects mask broken links, skew analytics with typo traffic and web crawlers, and cause SEO/indexing ambiguity.
+- **Disabled Slug (`GET /:slug` where `is_active = 0`):**
+  - Returns **`410 Gone`** with a clean branded explanation ("This link has been deactivated").
+  - *Rationale:* Conveys to clients and crawlers that the resource previously existed but was deliberately removed.
+- **Reserved Slugs (System Route Protection):**
+  - Slugs matching `/admin`, `/api/*`, `/health`, `/favicon.ico`, `/robots.txt`, `/static/*`, `/_*` cannot be registered as links.
+
+### 3.2. Input Validation Rules & Collision Handling
+
+- **Destination URL:**
+  - Allowed schemes: strictly `https://` and `http://`. Reject `javascript:`, `data:`, `file:`, `ftp:`, or relative paths to prevent SSRF and XSS.
+  - Max length: 2,048 characters.
+- **Slug Format & Case Normalization:**
+  - Format regex: `^[a-zA-Z0-9_-]{2,64}$` (min 2, max 64 characters; alphanumeric, hyphens, underscores).
+  - **Normalization:** Normalize all slugs to **lowercase** on creation and lookup (e.g., `MyLink` -> `mylink`) to prevent user confusion and duplicate route conflicts.
+- **Slug Collisions:**
+  - Custom slug: If the normalized slug already exists in the database, reject with **`409 Conflict`**.
+  - Auto-generated slug: Generate a 5-to-7 character base62/nanoid string (`[a-z0-9]`). Retry up to 5 times if collision occurs; if exhausted, return **`500 Internal Server Error`**.
+- **Description / Metadata:**
+  - Description: optional, max 255 characters.
+- **Standardized API Error Format (RFC 7807 inspired):**
+  ```json
+  {
+    "error": {
+      "code": "SLUG_ALREADY_EXISTS | INVALID_URL | VALIDATION_ERROR | NOT_FOUND | UNAUTHORIZED",
+      "message": "Human-readable description of error.",
+      "details": []
+    }
+  }
+  ```
+
+### 3.3. Analytics, Privacy Limits & Retention
+
+- **Privacy Requirements:**
+  - **Never store raw IP addresses.** Rely on Cloudflare's `CF-IPCountry` header for geographic logging.
+  - If IP hashing is enabled, store only a one-way salted daily SHA-256 hash or truncate to subnet (`/24` for IPv4).
+  - **Referrer sanitization:** Strip sensitive query strings from the `Referer` header before persisting (e.g., remove `token=`, `session=`, `key=`).
+  - **User-Agent:** Truncate to a maximum of 128 characters or store parsed OS and browser category.
+- **Retention & Data Pruning:**
+  - Individual `click_events` are retained for **90 days** (`ANALYTICS_RETENTION_DAYS=90`).
+  - The aggregate `click_count` and `last_accessed_at` on the `links` table remain permanently.
+  - Implement a daily cleanup query:
+    ```sql
+    DELETE FROM click_events WHERE clicked_at < datetime('now', '-90 days');
+    ```
+  - Storage expectation: ~120 bytes per click. At 10,000 clicks/month, 90 days occupies < 4 MB of disk space. Total database size will comfortably remain < 20 MB.
+
+---
+
+## 4. Database Architecture & Migrations
+
+### 4.1. Schema
 
 ```sql
+-- Migration tracking table
+CREATE TABLE IF NOT EXISTS _migrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Links table (Source of Truth)
 CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE COLLATE NOCASE,
     destination_url TEXT NOT NULL,
     description TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
@@ -103,6 +142,7 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE INDEX IF NOT EXISTS idx_links_slug ON links(slug);
 CREATE INDEX IF NOT EXISTS idx_links_active ON links(is_active);
 
+-- Click analytics table (Pruned to 90 days)
 CREATE TABLE IF NOT EXISTS click_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     link_id INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
@@ -116,61 +156,146 @@ CREATE INDEX IF NOT EXISTS idx_clicks_link_id ON click_events(link_id);
 CREATE INDEX IF NOT EXISTS idx_clicks_timestamp ON click_events(clicked_at);
 ```
 
+### 4.2. Migration & Seeding Lifecycle
+1. On application startup, the migration runner checks `_migrations` and applies pending SQL migration files sequentially inside a transaction.
+2. If `links` table is empty and `_redirects` exists, run `seed-redirects` automatically to import existing routes (`/br`, `/wb`, `/o7`, `/co`, `/dr`, `/store`, `/todo`, `/profile`, `/twitter`) with `is_active=1`.
+3. If an existing slug is already present during seed, ignore/skip without error (`INSERT OR IGNORE`).
+
 ---
 
-## 5. File Structure to Generate
+## 5. Persistence, Backup, Restore & Rollback
+
+### 5.1. SQLite File Persistence
+- The database is stored on the host at `./data/shortener.db` and mounted into the container at `/app/data/shortener.db`.
+- Docker container updates, rebuilds, and restarts **never touch or delete** host directory `./data`.
+
+### 5.2. Backup Strategy (`scripts/backup.sh`)
+- Use SQLite's online, non-blocking backup API to take consistent snapshots without stopping traffic:
+  ```bash
+  sqlite3 /app/data/shortener.db "VACUUM INTO '/app/data/backups/shortener_$(date +%Y%m%d_%H%M%S).db'"
+  ```
+- Retain the last 7 daily backups and 4 weekly backups; prune older ones.
+- Schedule via cron on `rv415` (e.g., daily at 03:00 AM).
+
+### 5.3. Restore Procedure
+1. Stop container: `docker compose down`
+2. Backup broken/current file: `cp ./data/shortener.db ./data/shortener.db.corrupt`
+3. Copy chosen backup snapshot to `./data/shortener.db`.
+4. Validate integrity: `sqlite3 ./data/shortener.db "PRAGMA integrity_check;"`
+5. Restart container: `docker compose up -d`
+
+### 5.4. Rollback Strategy
+- Production images are tagged with Git commit hash and `:latest` (`brzl-shortener:latest` and `brzl-shortener:${GIT_COMMIT}`).
+- If a new deployment fails health checks:
+  1. Revert container to previous image: `docker compose down && docker compose up -d brzl-shortener:<previous_commit>`
+  2. If a migration broke backwards compatibility, restore the pre-deployment database backup taken immediately prior to the update.
+
+---
+
+## 6. Admin API & Web Dashboard
+
+### 6.1. Authentication
+- Check for `Authorization: Bearer <ADMIN_API_KEY>` or session cookie.
+- If behind Cloudflare Access, optionally trust `Cf-Access-Authenticated-User-Email` matching authorized admin emails.
+
+### 6.2. REST Endpoints
+- `GET /api/links`: List links (supports `?search=`, `?page=`, `?limit=25`, `?status=active|disabled`).
+- `POST /api/links`: Create link (`{ "url": "https://...", "slug": "optional", "description": "optional" }`).
+- `GET /api/links/:id`: Get single link details + last 50 click events.
+- `PUT /api/links/:id`: Edit link destination URL, slug, description, or toggle `is_active`.
+- `DELETE /api/links/:id`: Delete a link and cascade delete its click events.
+- `GET /api/stats`: Dashboard summary counts (total links, active links, total clicks, clicks last 24h, top 5 links).
+- `GET /health`: Liveness probe (`200 OK {"status":"healthy","uptime":...}`).
+
+### 6.3. Admin Web Dashboard (`/admin`)
+- Dark-mode, responsive UI built with Tailwind CSS.
+- **Top Quick Bar:** Input for destination URL, optional slug, and one-click "Create Short Link".
+- **Links Table:**
+  - Formatted link: `brzl.ca/<slug>` with instant "Copy Link" clipboard button.
+  - Target URL preview with truncation.
+  - Active toggle switch (instantly activates or deactivates link).
+  - Total clicks badge.
+  - QR Code button: Opens a clean SVG modal with download and copy options.
+  - Edit and Delete modal.
+- **Filter & Search:** Live debounce search across slugs, targets, and descriptions.
+
+---
+
+## 7. File Structure Specification
 
 ```
 .
 ├── src/
-│   ├── index.ts               # Server entry point & graceful shutdown
-│   ├── config.ts              # Env configuration & defaults
+│   ├── index.ts                 # Server bootstrap, signal handling, graceful shutdown
+│   ├── config.ts                # Validated environment variables (Zod or Ajv)
 │   ├── db/
-│   │   ├── index.ts           # SQLite connection & WAL pragmas
-│   │   ├── schema.sql         # SQL schema definitions
+│   │   ├── index.ts             # SQLite connection, pragmas, WAL management
+│   │   ├── migrations/          # Version-controlled SQL migrations
+│   │   │   ├── 001_initial.sql
+│   │   │   └── 002_indices.sql
+│   │   ├── migrate.ts           # Schema migration runner
+│   │   └── seed.ts              # Legacy _redirects seed importer
 │   ├── routes/
-│   │   ├── redirect.ts        # Fast /:slug redirection & click logging
-│   │   ├── api.ts             # CRUD & stats REST API
-│   │   └── health.ts          # /health probe
+│   │   ├── redirect.ts          # /:slug handler, no-cache headers, 404/410 handlers
+│   │   ├── api.ts               # REST API endpoints (/api/links, /api/stats)
+│   │   └── health.ts            # /health check
 │   ├── middleware/
-│   │   └── auth.ts            # Admin API key / CF Access auth check
-│   └── public/                # Admin frontend assets (HTML, CSS, JS)
+│   │   ├── auth.ts              # Bearer key & Cloudflare Access header auth
+│   │   └── errorHandler.ts      # RFC 7807 error formatter
+│   └── public/                  # Admin UI static assets
 │       ├── index.html
 │       ├── app.js
 │       └── styles.css
-├── data/                      # Persistent storage (SQLite DB mount)
+├── data/                        # Host directory mounted into container (gitignored)
+│   ├── shortener.db
+│   └── backups/
 ├── scripts/
-│   └── deploy-rv415.sh        # Deployment script for remote rv415 host
-├── Dockerfile                 # Multi-stage lightweight build
-├── docker-compose.yml         # Container & volume orchestration
+│   ├── seed-redirects.ts        # Standalone CLI to seed from _redirects
+│   ├── backup.sh                # Online SQLite VACUUM backup script
+│   └── deploy-rv415.sh          # Deployment script targeting rv415
+├── _redirects                   # Historical legacy file (seed source, preserved in git)
+├── Dockerfile                   # Multi-stage build (Node 20 Alpine)
+├── docker-compose.yml           # Production container definition
 ├── package.json
 ├── tsconfig.json
-└── README.md                  # Comprehensive setup & operations doc
+└── README.md                    # Operational handbook & setup instructions
 ```
 
 ---
 
-## 6. Cloudflare Tunnel & rv415 Deployment Specification
+## 8. Cloudflare Tunnel & Docker Compose Configuration
 
-### 6.1. Docker Compose Configuration (`docker-compose.yml`)
+### 8.1. `docker-compose.yml`
 ```yaml
 version: '3.8'
 
 services:
   url-shortener:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: brzl-shortener:latest
     container_name: brzl-shortener
     restart: unless-stopped
     ports:
       - "127.0.0.1:3005:3005"
     environment:
+      - NODE_ENV=production
       - PORT=3005
       - BASE_URL=https://brzl.ca
       - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - DEFAULT_FALLBACK_URL=https://brasileiro.ca
       - DB_PATH=/app/data/shortener.db
+      - ANALYTICS_RETENTION_DAYS=90
+      - NODE_OPTIONS=--max-old-space-size=64
     volumes:
       - ./data:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
       interval: 30s
@@ -178,38 +303,39 @@ services:
       retries: 3
 ```
 
-### 6.2. Cloudflare Ingress Rule
+### 8.2. Cloudflare Ingress Rule
 On `rv415`, Cloudflare Tunnel (`8315d281-8528-4dcf-95f7-285c7256c74c`) route:
 - Hostname: `brzl.ca`
 - Service: `http://127.0.0.1:3005`
-- Additional origin headers: Pass through `CF-Connecting-IP`, `CF-IPCountry`.
-
-Provide the exact curl command to patch the Cloudflare Tunnel ingress configuration rule via API.
+- Pass through headers: `CF-Connecting-IP`, `CF-IPCountry`, `Cf-Access-Authenticated-User-Email`.
 
 ---
 
-## 7. Deliverables & Execution Plan
+## 9. Implementation Plan
 
-Please implement this project completely following these steps:
+Execute the transformation step-by-step:
 
-1. **Setup project configuration:** Initialize `package.json`, TypeScript, and build scripts.
-2. **Implement Database Layer:** Setup SQLite with WAL mode and automatic schema creation. Start with an empty links table; links are added through the dashboard or API.
-3. **Build Core Server & Redirection Engine:**
-   - Ultra-fast `/:slug` handler with non-blocking click tracking.
-   - Reserved route guards and 404/fallback redirection.
-4. **Build Admin REST API:**
-   - Full CRUD endpoints protected with API key authentication.
-   - Aggregate statistics endpoint.
-5. **Build Dashboard UI:**
-   - Responsive web dashboard served at `/admin`.
-   - Link creation, QR code generation, copy to clipboard, and click counters.
-6. **Docker & Deployment Automation:**
-   - Create multi-stage `Dockerfile` (optimized for linux/amd64).
-   - Create `docker-compose.yml` with persistent SQLite volume.
-   - Create automated `deploy-rv415.sh` script to build, deploy to `rv415` via SSH, and apply database schema changes safely.
-   - Update `README.md` with instructions on running locally, deploying to `rv415`, and configuring Cloudflare DNS & Tunnel.
-7. **Verification:**
-   - Run tests or dry-run scripts to verify link creation and redirection, API authentication, slug generation, database persistence across restarts, and health checks.
-
-Begin step-by-step, ensuring clean code, clear comments, and robust error handling throughout.
+1. **Project & Tooling Setup:** Initialize `package.json`, TypeScript, and build scripts.
+2. **Database & Migration Engine:**
+   - Implement `better-sqlite3` with WAL mode pragmas.
+   - Create migration runner (`_migrations` table) and schema files.
+   - Create seed importer from `_redirects` (`scripts/seed-redirects.ts`).
+3. **Core Redirection Engine:**
+   - Implement `GET /:slug` with `307 Temporary Redirect` and strict `Cache-Control: private, no-cache, no-store`.
+   - Implement `404 Not Found` for unknown slugs and `410 Gone` for disabled slugs.
+   - Non-blocking click tracking with privacy masking (CF country, stripped referrer, sanitized UA).
+4. **Admin REST API:**
+   - Full CRUD on `/api/links` with validation (URL scheme, slug regex, 409 collision check).
+   - `/api/stats` endpoint.
+   - Auth middleware supporting `ADMIN_API_KEY` and CF Access headers.
+5. **Admin UI Dashboard:**
+   - Responsive dark-mode dashboard at `/admin`.
+   - Link creation, QR code modal, search/filter, and copy button.
+6. **Maintenance & Backup Scripts:**
+   - Write `scripts/backup.sh` for non-blocking SQLite snapshot backups.
+   - Write daily 90-day analytics cleanup routine.
+   - Write `scripts/deploy-rv415.sh` for remote deployment and safe restart.
+7. **Containerization & Verification:**
+   - Build multi-stage `Dockerfile` and `docker-compose.yml` with memory limits.
+   - Run integration tests: verify active redirects (`/br`, `/wb`), verify 404 on unknown slugs, verify 410 on disabled slugs, verify 409 on duplicate custom slugs, and verify persistence of SQLite data across container recreation.
 ```
