@@ -34,11 +34,11 @@ remaining = ingress[:-1] if ingress else []
 new_rules = [
     {
         'hostname': 'brzl.ca',
-        'service': 'http://127.0.0.1:3005'
+        'service': 'http://brzl-shortener:3005'
     },
     {
         'hostname': 'www.brzl.ca',
-        'service': 'http://127.0.0.1:3005'
+        'service': 'http://brzl-shortener:3005'
     }
 ]
 

@@ -16,12 +16,20 @@ fi
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 SNAPSHOT_FILE="${BACKUP_DIR}/shortener_backup_${TIMESTAMP}.db"
+SNAPSHOT_NAME="shortener_backup_${TIMESTAMP}.db"
 
 echo "[BACKUP] Creating online SQLite snapshot into ${SNAPSHOT_FILE}..."
-sqlite3 "${DB_PATH}" "VACUUM INTO '${SNAPSHOT_FILE}';"
 
-echo "[BACKUP] Verifying snapshot integrity..."
-INTEGRITY=$(sqlite3 "${SNAPSHOT_FILE}" "PRAGMA integrity_check;")
+if command -v sqlite3 >/dev/null 2>&1; then
+  sqlite3 "${DB_PATH}" "VACUUM INTO '${SNAPSHOT_FILE}';"
+  INTEGRITY=$(sqlite3 "${SNAPSHOT_FILE}" "PRAGMA integrity_check;")
+elif docker ps --filter "name=brzl-shortener" --format '{{.Names}}' | grep -q "brzl-shortener"; then
+  docker exec brzl-shortener sqlite3 /app/data/shortener.db "VACUUM INTO '/app/data/backups/${SNAPSHOT_NAME}'"
+  INTEGRITY=$(docker exec brzl-shortener sqlite3 "/app/data/backups/${SNAPSHOT_NAME}" "PRAGMA integrity_check;")
+else
+  echo "[ERROR] Neither host sqlite3 nor running brzl-shortener container found."
+  exit 1
+fi
 if [ "${INTEGRITY}" != "ok" ]; then
   echo "[ERROR] Backup integrity check failed: ${INTEGRITY}"
   rm -f "${SNAPSHOT_FILE}"

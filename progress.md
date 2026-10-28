@@ -16,7 +16,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ✅ Done | [#5](https://github.com/1st3/url-shortnener/issues/5) |
 | **Phase 5** | Admin REST API & Authentication Middleware | ✅ Done | [#6](https://github.com/1st3/url-shortnener/issues/6) |
 | **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ✅ Done | [#7](https://github.com/1st3/url-shortnener/issues/7) |
-| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ In Progress | [#8](https://github.com/1st3/url-shortnener/issues/8) |
+| **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ✅ Done | [#8](https://github.com/1st3/url-shortnener/issues/8) |
 
 ---
 
@@ -73,9 +73,9 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 - [x] Display aggregate analytics summary cards (total clicks, active links, 24h click volume).
 
 ### Phase 7: Deployment, Docker Compose, Backups & Cloudflare Ingress
-- [ ] Author multi-stage `Dockerfile` (Node 20 Alpine, non-root user, memory-optimized flags).
-- [ ] Author `docker-compose.yml` with host volume mount (`./data:/app/data`), resource caps (`mem_limit: 128m`), and health checks.
-- [ ] Write non-blocking backup script (`scripts/backup.sh`) using SQLite `VACUUM INTO` with 7-day rotation.
-- [ ] Write remote deployment script (`scripts/deploy-rv415.sh`) for `rv415` with pre-deploy backup and image rollback capability.
-- [ ] Document Cloudflare Tunnel ingress rule configuration for `brzl.ca` pointing to `127.0.0.1:3005`.
-- [ ] Update repository `README.md` with complete operational runbook.
+- [x] Author multi-stage `Dockerfile` (Node 20 Alpine, non-root user, memory-optimized flags).
+- [x] Author `docker-compose.yml` with host volume mount (`./data:/app/data`), resource caps (`mem_limit: 128m`), and health checks.
+- [x] Write non-blocking backup script (`scripts/backup.sh`) using SQLite `VACUUM INTO` with 7-day rotation.
+- [x] Write remote deployment script (`scripts/deploy-rv415.sh`) for `rv415` with pre-deploy backup and image rollback capability.
+- [x] Document Cloudflare Tunnel ingress rule configuration for `brzl.ca` pointing to `127.0.0.1:3005`.
+- [x] Update repository `README.md` with complete operational runbook.
