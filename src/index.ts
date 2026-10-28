@@ -3,6 +3,9 @@ import { config } from './config.js';
 import { runMigrations } from './db/migrate.js';
 import { checkDatabaseIntegrity, closeDatabase, getDatabase } from './db/index.js';
 import { seedFromRedirects } from './db/seed.js';
+import { redirectRoutes } from './routes/redirect.js';
+import { analyticsQueue } from './services/analyticsQueue.js';
+import { startPruningScheduler } from './services/pruning.js';
 
 const app = Fastify({
   logger: {
@@ -13,9 +16,11 @@ const app = Fastify({
 
 app.get('/health', async () => {
   const dbOk = checkDatabaseIntegrity();
+  const queueStats = analyticsQueue.getStats();
   return {
     status: dbOk ? 'healthy' : 'degraded',
     database: dbOk ? 'ok' : 'corrupted',
+    analyticsQueue: queueStats,
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: config.NODE_ENV,
@@ -43,6 +48,12 @@ async function start() {
       app.log.info(`Auto-seed complete: ${seedResult.seeded} entries imported.`);
     }
 
+    // Start background analytics pruning scheduler
+    startPruningScheduler();
+
+    // Register routes
+    await app.register(redirectRoutes);
+
     await app.listen({ port: config.PORT, host: config.HOST });
     app.log.info(`Server running at http://${config.HOST}:${config.PORT} (Base URL: ${config.BASE_URL})`);
   } catch (err) {
@@ -58,8 +69,9 @@ for (const signal of signals) {
     app.log.info(`Received ${signal}. Starting graceful shutdown...`);
     try {
       await app.close();
+      await analyticsQueue.shutdown();
       closeDatabase();
-      app.log.info('Server and database closed gracefully');
+      app.log.info('Server, analytics queue, and database closed gracefully');
       process.exit(0);
     } catch (err) {
       app.log.error(err, 'Error during shutdown');

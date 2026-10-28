@@ -12,8 +12,8 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 |---|---|---|---|
 | **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ✅ Done | [#2](https://github.com/1st3/url-shortnener/issues/2) |
 | **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ✅ Done | [#3](https://github.com/1st3/url-shortnener/issues/3) |
-| **Phase 3** | Redirection Engine, Caching & Route Guards | ⏳ Pending | [#4](https://github.com/1st3/url-shortnener/issues/4) |
-| **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ⏳ Pending | [#5](https://github.com/1st3/url-shortnener/issues/5) |
+| **Phase 3** | Redirection Engine, Caching & Route Guards | ✅ Done | [#4](https://github.com/1st3/url-shortnener/issues/4) |
+| **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ✅ Done | [#5](https://github.com/1st3/url-shortnener/issues/5) |
 | **Phase 5** | Admin REST API & Authentication Middleware | ⏳ Pending | [#6](https://github.com/1st3/url-shortnener/issues/6) |
 | **Phase 6** | Modern Admin Dashboard UI & QR Code Generator | ⏳ Pending | [#7](https://github.com/1st3/url-shortnener/issues/7) |
 | **Phase 7** | Deployment, Docker Compose, Backups & Cloudflare Ingress | ⏳ Pending | [#8](https://github.com/1st3/url-shortnener/issues/8) |
@@ -38,21 +38,21 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 - [x] Add database integrity check routines (`PRAGMA integrity_check`).
 
 ### Phase 3: Redirection Engine, Caching & Route Guards
-- [ ] Implement `GET /:slug` handler in `src/routes/redirect.ts`.
-- [ ] Enforce `307 Temporary Redirect` with strict headers:
+- [x] Implement `GET /:slug` handler in `src/routes/redirect.ts`.
+- [x] Enforce `307 Temporary Redirect` with strict headers:
   `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`
-- [ ] Implement branded **`404 Not Found`** HTML page for unknown slugs (no silent redirects).
-- [ ] Implement branded **`410 Gone`** HTML page for deactivated slugs (`is_active = 0`).
-- [ ] Implement root path redirect `GET /` to `DEFAULT_FALLBACK_URL`.
-- [ ] Add route guards for reserved system paths (`/admin`, `/api/*`, `/health`, `/static/*`).
+- [x] Implement branded **`404 Not Found`** HTML page for unknown slugs (no silent redirects).
+- [x] Implement branded **`410 Gone`** HTML page for deactivated slugs (`is_active = 0`).
+- [x] Implement root path redirect `GET /` to `DEFAULT_FALLBACK_URL`.
+- [x] Add route guards for reserved system paths (`/admin`, `/api/*`, `/health`, `/static/*`).
 
 ### Phase 4: Decoupled Analytics Queue & 90-Day Retention Pruning
-- [ ] Build in-memory batch queue (`src/services/analyticsQueue.ts`) decoupled from visitor redirect responses.
-- [ ] Implement batch flush mechanism: commit to SQLite every **50 events** or **1,000 ms** in a single transaction.
-- [ ] Implement queue bounding (max 5,000 items) with drop-oldest overflow policy (never fail redirects).
-- [ ] Add graceful shutdown queue drain with 5-second deadline.
-- [ ] Implement privacy masking: extract `CF-IPCountry`, strip query parameters from `Referer`, sanitize `User-Agent`.
-- [ ] Implement daily automated retention pruning (`src/services/pruning.ts`) deleting `click_events` > 90 days.
+- [x] Build in-memory batch queue (`src/services/analyticsQueue.ts`) decoupled from visitor redirect responses.
+- [x] Implement batch flush mechanism: commit to SQLite every **50 events** or **1,000 ms** in a single transaction.
+- [x] Implement queue bounding (max 5,000 items) with drop-oldest overflow policy (never fail redirects).
+- [x] Add graceful shutdown queue drain with 5-second deadline.
+- [x] Implement privacy masking: extract `CF-IPCountry`, strip query parameters from `Referer`, sanitize `User-Agent`.
+- [x] Implement daily automated retention pruning (`src/services/pruning.ts`) deleting `click_events` > 90 days.
 
 ### Phase 5: Admin REST API & Authentication Middleware
 - [ ] Build authentication middleware (`src/middleware/auth.ts`) supporting `ADMIN_API_KEY` and `Cf-Access-Authenticated-User-Email`.
