@@ -11,7 +11,7 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 | Phase | Milestone | Status | GitHub Issue |
 |---|---|---|---|
 | **Phase 1** | Project Setup, Fastify & TypeScript Foundation | ✅ Done | [#2](https://github.com/1st3/url-shortnener/issues/2) |
-| **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ⏳ Pending | [#3](https://github.com/1st3/url-shortnener/issues/3) |
+| **Phase 2** | SQLite Database Layer, WAL Mode & Legacy Seeding | ✅ Done | [#3](https://github.com/1st3/url-shortnener/issues/3) |
 | **Phase 3** | Redirection Engine, Caching & Route Guards | ⏳ Pending | [#4](https://github.com/1st3/url-shortnener/issues/4) |
 | **Phase 4** | Decoupled Analytics Queue & 90-Day Retention Pruning | ⏳ Pending | [#5](https://github.com/1st3/url-shortnener/issues/5) |
 | **Phase 5** | Admin REST API & Authentication Middleware | ⏳ Pending | [#6](https://github.com/1st3/url-shortnener/issues/6) |
@@ -31,11 +31,11 @@ For full system architecture, hardware limits, data contracts, and policies, ref
 - [x] Verify baseline memory footprint (< 60MB idle RSS).
 
 ### Phase 2: SQLite Database Layer, WAL Mode & Legacy Seeding
-- [ ] Configure `better-sqlite3` connection (`src/db/index.ts`) with WAL mode and `synchronous = NORMAL`.
-- [ ] Create version-tracked migration engine (`src/db/migrate.ts`) and `_migrations` table.
-- [ ] Author initial schema migration (`src/db/migrations/001_initial.sql`) for `links` and `click_events`.
-- [ ] Implement one-time seed importer (`scripts/seed-redirects.ts`) parsing `_redirects` into SQLite (`INSERT OR IGNORE`).
-- [ ] Add database integrity check routines (`PRAGMA integrity_check`).
+- [x] Configure `better-sqlite3` connection (`src/db/index.ts`) with WAL mode and `synchronous = NORMAL`.
+- [x] Create version-tracked migration engine (`src/db/migrate.ts`) and `_migrations` table.
+- [x] Author initial schema migration (`src/db/migrations/001_initial.sql`) for `links` and `click_events`.
+- [x] Implement one-time seed importer (`scripts/seed-redirects.ts`) parsing `_redirects` into SQLite (`INSERT OR IGNORE`).
+- [x] Add database integrity check routines (`PRAGMA integrity_check`).
 
 ### Phase 3: Redirection Engine, Caching & Route Guards
 - [ ] Implement `GET /:slug` handler in `src/routes/redirect.ts`.
